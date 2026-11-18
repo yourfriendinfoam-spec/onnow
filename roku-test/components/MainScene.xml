@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+  <interface>
+    <field id="apps" type="array" onChange="onApps" />
+    <field id="launchId" type="string" alwaysNotify="true" />
+    <field id="status" type="string" onChange="onStatus" alwaysNotify="true" />
+  </interface>
+  <script type="text/brightscript" uri="MainScene.brs" />
+  <children>
+    <Rectangle width="1920" height="1080" color="0x0C1118FF" />
+    <Label text="OnNow test: pick a channel to open it" translation="[120,70]" font="font:LargeBoldSystemFont" color="0xEEF2F7FF" />
+    <Label id="statusLabel" text="Looking for your channels..." translation="[120,140]" width="1680" wrap="true" color="0xFF5A3DFF" />
+    <LabelList id="list" translation="[120,240]" itemSize="[1200,60]" numRows="11" />
+    <Label text="If no channels appear: Settings &gt; System &gt; Advanced system settings &gt; Control by mobile apps &gt; Network access &gt; Permissive, then reopen this app." translation="[120,960]" width="1680" wrap="true" color="0x97A3B5FF" />
+  </children>
+</component>
