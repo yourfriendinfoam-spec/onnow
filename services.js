@@ -7,7 +7,7 @@
 export const GROUPS = ["Cable & satellite", "Live TV apps", "Streaming", "Sports", "Free"];
 export const SERVICES = [
   // Cable & satellite (each counts as "cable" for channel matching)
-  { id: "spectrum", g: 0, name: "Spectrum",        m: "SP", c: "#1c5fb8", url: "https://watch.spectrum.net", includes: ["cable"] },
+  { id: "spectrum", g: 0, name: "Spectrum",        m: "SP", c: "#1c5fb8", url: "https://watch.spectrum.net/guide", includes: ["cable"] },
   { id: "xfinity",  g: 0, name: "Xfinity",         m: "XF", c: "#5a2ca0", url: "https://www.xfinity.com/stream", includes: ["cable"] },
   { id: "directv",  g: 0, name: "DirecTV",         m: "DTV", c: "#0f6cbd", url: "https://stream.directv.com", includes: ["cable"] },
   { id: "dtvstream",g: 0, name: "DirecTV Stream",  m: "DS", c: "#0a4f8c", url: "https://stream.directv.com", includes: ["cable"] },
