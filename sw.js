@@ -1,6 +1,6 @@
 // Caches the app's own files so it opens instantly and installs to the home screen.
 // Listings are always fetched fresh from the network.
-const CACHE = "onnow-v5";
+const CACHE = "onnow-v7";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "data.js", "services.js", "manifest.json", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())));

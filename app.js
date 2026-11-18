@@ -17,6 +17,8 @@ let showAll = store.get("showAll", false);
 let onRoku = store.get("roku", false); // buttons switch the Roku TV via the "OnNow Roku" iPhone Shortcut
 const rokuLink = (id) => `shortcuts://run-shortcut?name=${encodeURIComponent("OnNow Roku")}&input=text&text=${id}`;
 let view = firstRun ? "setup" : "live";
+let surfKey = store.get("surfKey", null), lastKey = store.get("lastKey", null), surfMsg = "";
+let currentLineup = [];
 let cat = "All";
 
 // ---------- data ----------
@@ -59,14 +61,20 @@ function render() {
   const now = new Date();
   $("#clock").textContent = now.toLocaleDateString([], { weekday: "short" }) + " " + fmt(now);
   document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.view === view));
-  $("#guide").hidden = view === "setup";
+  $("#guide").hidden = view === "setup" || view === "surf";
   $("#setup").hidden = view !== "setup";
+  $("#surf").hidden = view !== "surf";
   if (view === "setup") return renderSetup();
 
-  if (loading) { $("#content").innerHTML = `<div class="empty">Loading today's listings…</div>`; $("#chips").innerHTML = ""; return; }
+  if (loading) {
+    const msg = `<div class="empty">Loading today's listings…</div>`;
+    if (view === "surf") $("#surf").innerHTML = msg; else { $("#content").innerHTML = msg; $("#chips").innerHTML = ""; }
+    return;
+  }
 
   const mineX = expand(mine);
   const items = raw.map((it) => withClock(it, now)).map((it) => ({ ...it, ...access(it, mineX), followed: followsTeam(it) }));
+  if (view === "surf") return renderSurf(items, now);
   const canSee = (it) => it.have.length || it.followed || showAll;
   const inCat = (it) => cat === "All" || it.cat === cat;
 
@@ -162,6 +170,78 @@ function row(it, now) {
   </article>`;
 }
 
+// ---------- Surf: a numbered channel lineup you flip through like cable ----------
+// One "channel" per network that's live on your services (each game is its own channel).
+function buildLineup(items) {
+  const byKey = new Map();
+  for (const it of items) {
+    if (it.state !== "live" || !it.have.length || it.kind === "drop") continue;
+    const key = it.kind === "game" ? it.id : "ch:" + (it.channels[0] || it.have[0]).toLowerCase();
+    const prev = byKey.get(key);
+    if (!prev || it.start > prev.start) byKey.set(key, { key, it });
+  }
+  const catRank = { Sports: 0, News: 1, Shows: 2 };
+  return [...byKey.values()]
+    .sort((a, b) => (b.it.followed - a.it.followed) || ((catRank[a.it.cat] ?? 3) - (catRank[b.it.cat] ?? 3)) ||
+      (a.it.channels[0] || "").localeCompare(b.it.channels[0] || "") || a.it.title.localeCompare(b.it.title))
+    .map((e, i) => ({ ...e, num: i + 1, svc: providerFor(e.it.have[0]) }));
+}
+
+function renderSurf(items, now) {
+  currentLineup = buildLineup(items);
+  const L = currentLineup;
+  const cur = L.find((e) => e.key === surfKey);
+  const last = L.find((e) => e.key === lastKey);
+  const chName = (e) => e.it.channels[0] || e.svc.name;
+  const card = cur ? `
+    <div class="now-card">
+      <div class="ch-num"><span>CH</span>${cur.num}</div>
+      <div class="now-main">
+        <div class="cat">${esc(chName(cur))} · via ${esc(cur.svc.name)}</div>
+        <h2 class="now-title">${esc(cur.it.title)}</h2>
+        <div class="sub">${esc(cur.it.score || cur.it.status || (cur.it.sub && cur.it.sub !== cur.it.cat ? cur.it.sub : "") || "Live now")}</div>
+      </div>
+    </div>` : `<div class="now-card empty-card">${L.length ? "Press ▲ or tap a channel below to start surfing." : ""}</div>`;
+  const mode = onRoku ? "Flipping changes your Roku TV." : "Flipping opens apps on this phone. Turn on Play on my Roku TV under My services to flip the TV.";
+  $("#surf").innerHTML = !L.length
+    ? `<div class="empty">${mine.size ? "Nothing live on your services right now." : "Add your services under My services first."}</div>`
+    : `${card}
+    <div class="remote">
+      <button class="rbtn" id="ch-down" aria-label="Channel down">▼<span>CH</span></button>
+      <button class="rbtn last" id="ch-last" ${last ? "" : "disabled"} aria-label="Last channel">↺<span>${last ? "LAST · " + last.num : "LAST"}</span></button>
+      <button class="rbtn" id="ch-up" aria-label="Channel up">▲<span>CH</span></button>
+    </div>
+    <p class="surf-note">${esc(surfMsg || mode)}</p>
+    <div class="section-h"><h2>Lineup</h2><span>${L.length} live on your services</span></div>
+    <div class="lineup">${L.map((e) => `
+      <button class="lrow${e.key === surfKey ? " on" : ""}" data-tune="${esc(e.key)}">
+        <span class="lnum">${e.num}</span>
+        <span class="lmain"><span class="ltitle">${esc(e.it.title)}</span><span class="lsub">${esc(chName(e))} · ${esc(e.it.cat)}</span></span>
+        ${mono(e.svc)}
+      </button>`).join("")}</div>`;
+}
+
+function tune(entry) {
+  if (!entry) return;
+  if (surfKey && surfKey !== entry.key) { lastKey = surfKey; store.set("lastKey", lastKey); }
+  surfKey = entry.key; store.set("surfKey", surfKey);
+  const s = entry.svc, ch = entry.it.channels[0];
+  surfMsg = "";
+  render();
+  if (onRoku && s.roku) { location.href = rokuLink(s.roku); return; }
+  if (s.url) { window.open(s.url, "_blank", "noopener"); return; }
+  surfMsg = `Turn to ${ch || entry.it.title} on ${s.name}.`;
+  render();
+}
+
+function flip(step) {
+  const L = currentLineup;
+  if (!L.length) return;
+  const i = L.findIndex((e) => e.key === surfKey);
+  const next = i < 0 ? (step > 0 ? 0 : L.length - 1) : (i + step + L.length) % L.length;
+  tune(L[next]);
+}
+
 function tile(s, action) {
   const btn = action === "rm"
     ? `<button class="tile-x" data-rm="${esc(s.id)}" aria-label="Remove ${esc(s.name)}">×</button>`
@@ -206,6 +286,11 @@ function renderCatalog() {
 document.addEventListener("click", (e) => {
   const tab = e.target.closest(".tab");
   if (tab) { view = tab.dataset.view; render(); window.scrollTo({ top: 0 }); return; }
+  if (e.target.closest("#ch-up")) { flip(1); return; }
+  if (e.target.closest("#ch-down")) { flip(-1); return; }
+  if (e.target.closest("#ch-last")) { tune(currentLineup.find((x) => x.key === lastKey)); return; }
+  const tn = e.target.closest("[data-tune]");
+  if (tn) { tune(currentLineup.find((x) => x.key === tn.dataset.tune)); return; }
   const chip = e.target.closest(".chip");
   if (chip) { cat = chip.dataset.cat; render(); return; }
   const add = e.target.closest("[data-add]");
