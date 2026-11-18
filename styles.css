@@ -122,3 +122,4 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .opts .watch .mono{width:20px;height:20px;font-size:9px;border-radius:5px}
 .opts .watch.alt{background:transparent;color:var(--fg);border:1px solid var(--line)}
 .opts .watch.plain.alt,.opts .watch.plain{background:var(--surface-2);color:var(--fg);border:0}
+.sub-note{display:block;font-size:12px;color:var(--muted);margin-top:2px;max-width:52ch}

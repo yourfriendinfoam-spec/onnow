@@ -14,6 +14,8 @@ let catalogOpen = firstRun, query = "";
 const svcOf = (id) => BY_ID[id] || (custom[id] ? customService(id, custom[id]) : null);
 const saveMine = () => store.set("mine", [...mine]);
 let showAll = store.get("showAll", false);
+let onRoku = store.get("roku", false); // buttons switch the Roku TV via the "OnNow Roku" iPhone Shortcut
+const rokuLink = (id) => `shortcuts://run-shortcut?name=${encodeURIComponent("OnNow Roku")}&input=text&text=${id}`;
 let view = firstRun ? "setup" : "live";
 let cat = "All";
 
@@ -129,6 +131,7 @@ function row(it, now) {
     btn = `<div class="opts">${opts.map(({ s }, i) => {
       const cls = i === 0 ? "watch" : "watch alt";
       const label = s.url ? esc(s.name) : s.id === "antenna" ? `Antenna: ${esc(ch)}` : `${esc(s.name)}: ${esc(ch || "")}`;
+      if (onRoku && s.roku) return `<a class="${cls}" href="${rokuLink(s.roku)}">${mono(s)}${i === 0 ? "On TV: " : "TV: "}${esc(s.name)}</a>`;
       return s.url
         ? `<a class="${cls}" href="${s.url}" target="_blank" rel="noopener">${mono(s)}${i === 0 ? "Watch on " : ""}${label}</a>`
         : `<span class="${cls} plain">${mono(s)}${label}</span>`;
@@ -185,6 +188,7 @@ function renderSetup() {
     ? tk.map(([k, n]) => `<button class="team" data-team="${esc(k)}" data-name="${esc(n)}" aria-pressed="true">★ ${esc(n)} ×</button>`).join("")
     : `<p class="hint">No teams yet. Tap ☆ next to a team on any game to follow it.</p>`;
   $("#show-all").checked = showAll;
+  $("#roku-mode").checked = onRoku;
 }
 
 function renderCatalog() {
@@ -225,6 +229,7 @@ $("#custom-form").addEventListener("submit", (e) => {
   store.set("custom", custom); saveMine();
   $("#custom-name").value = ""; render();
 });
+$("#roku-mode").addEventListener("change", (e) => { onRoku = e.target.checked; store.set("roku", onRoku); render(); });
 $("#show-all").addEventListener("change", (e) => { showAll = e.target.checked; store.set("showAll", showAll); render(); });
 
 refresh();
