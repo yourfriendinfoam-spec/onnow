@@ -40,10 +40,24 @@
   <section id="setup" class="setup" hidden>
     <div id="first-run" class="welcome" hidden>
       <h1>Your TV guide, built from what you pay for</h1>
-      <p>Tap every service you have. OnNow shows what's live across all of them and opens the right app when you tap Watch.</p>
+      <p>Add every service you pay for. OnNow shows what's live across all of them and opens the right app when you tap Watch.</p>
     </div>
     <div class="section-h"><h2>My services</h2><span id="svc-count"></span></div>
-    <div id="svc-grid"></div>
+    <div class="grid" id="my-svcs"></div>
+    <button id="open-cat" class="add-btn">+ Add a service</button>
+
+    <div id="catalog" class="catalog" hidden>
+      <div class="cat-head">
+        <h3>Add a service</h3>
+        <button id="close-cat" class="link-btn">Close</button>
+      </div>
+      <input id="cat-search" type="search" placeholder="Search, e.g. Spectrum, Peacock, League Pass" autocomplete="off" aria-label="Search services">
+      <div id="cat-list"></div>
+      <form id="custom-form" class="custom">
+        <label for="custom-name">Can't find yours? Add it by name</label>
+        <div class="custom-row"><input id="custom-name" type="text" placeholder="Service name" maxlength="40"><button type="submit">Add</button></div>
+      </form>
+    </div>
 
     <div class="section-h"><h2>My teams</h2></div>
     <div class="teams" id="team-list"></div>

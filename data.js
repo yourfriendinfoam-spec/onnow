@@ -55,6 +55,10 @@ function fromEspn(ev, [, league, label, mins]) {
   const state = st.state === "in" ? "live" : st.state === "post" ? "ended" : "upcoming";
   const end = new Date(start.getTime() + mins * 60000);
   const link = (ev.links || []).find((l) => (l.rel || []).includes("summary"))?.href;
+  // Regional games stream on the league's package for viewers outside the teams' area
+  const match = matchAll(channels, { isGame: true });
+  const pkg = { nba: "nbalp", mlb: "mlbtv", nhl: "espn" }[league];
+  const outOfMarket = match.regional && pkg ? [pkg] : [];
   return {
     id: `espn:${ev.id}`,
     kind: "game",
@@ -64,7 +68,9 @@ function fromEspn(ev, [, league, label, mins]) {
     status: state === "live" ? st.shortDetail : state === "ended" ? "Final" : null,
     score: state !== "upcoming" && away && home ? `${away.abbr} ${away.score} · ${home.abbr} ${home.score}` : null,
     start, end, state, channels, teams, link,
-    ...matchAll(channels, { isGame: true }),
+    ...match,
+    carriers: [...new Set([...match.carriers, ...outOfMarket])],
+    outOfMarket,
   };
 }
 

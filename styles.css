@@ -14,6 +14,7 @@
   --live:#ff5a3d; --ok:#3fbf86; --new:#6aa2ff; color-scheme:dark}}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;padding-bottom:env(safe-area-inset-bottom,0px)}
 a{color:inherit}
@@ -95,3 +96,22 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .primary:disabled{opacity:.4;cursor:default}
 .how{margin:24px 0 32px;font-size:13px;border-top:1px solid var(--line);padding-top:12px}
 .how b{color:var(--fg)}
+
+/* Services: my tiles with remove, catalog with add */
+.tile-x{margin-left:auto;width:30px;height:30px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font-size:18px;line-height:1;cursor:pointer}
+.svc{cursor:default}
+.svc.addable{cursor:pointer}
+.svc .plus{margin-left:auto;font-size:20px;font-weight:600;color:var(--ok);flex:none}
+#my-svcs .svc{border-color:var(--ok)}
+.add-btn{display:block;width:100%;margin-top:10px;padding:12px;border-radius:10px;border:1.5px dashed var(--line);background:transparent;color:var(--fg);font-weight:600;font-size:15px;cursor:pointer}
+.catalog{margin-top:12px;padding:14px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.catalog .svc{background:var(--bg)}
+.cat-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cat-head h3{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0}
+.link-btn{background:none;border:0;color:var(--accent);font-weight:600;font-size:14px;cursor:pointer;padding:6px}
+#cat-search,#custom-name{width:100%;font:500 16px var(--body);padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin-top:10px}
+.custom{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.custom label{font-size:13px;font-weight:600}
+.custom-row{display:flex;gap:8px;align-items:center}
+.custom-row input{flex:1;min-width:0}
+.custom-row button{margin-top:10px;padding:10px 16px;border-radius:8px;border:0;background:var(--fg);color:var(--bg);font-weight:600;cursor:pointer}

@@ -1,4 +1,4 @@
-import { SERVICES, BY_ID, rank, expand } from "./services.js";
+import { SERVICES, BY_ID, GROUPS, rank, expand, customService } from "./services.js";
 import { loadAll, withClock } from "./data.js";
 
 // ---------- saved preferences (this device only) ----------
@@ -9,6 +9,10 @@ const store = {
 const firstRun = store.get("mine", null) === null;
 let mine = new Set(store.get("mine", []));
 let teams = store.get("teams", {}); // key -> display name
+let custom = store.get("custom", {}); // id -> name, for services typed in by the user
+let catalogOpen = firstRun, query = "";
+const svcOf = (id) => BY_ID[id] || (custom[id] ? customService(id, custom[id]) : null);
+const saveMine = () => store.set("mine", [...mine]);
 let showAll = store.get("showAll", false);
 let view = firstRun ? "setup" : "live";
 let cat = "All";
@@ -35,6 +39,12 @@ const fmt = (d) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit"
 const until = (d, now) => { const m = Math.round((d - now) / 60000); return m < 60 ? `in ${m}m` : `in ${Math.floor(m / 60)}h ${m % 60 ? (m % 60) + "m" : ""}`.trim(); };
 const mono = (s, big) => `<span class="mono${big ? " big" : ""}" style="background:${s.c}" aria-hidden="true">${esc(s.m)}</span>`;
 
+// The tile the user picked that gives them this id (e.g. "cable" -> their Spectrum tile)
+function providerFor(id) {
+  if (mine.has(id)) return BY_ID[id];
+  for (const m of mine) if (BY_ID[m]?.includes?.includes(id)) return BY_ID[m];
+  return BY_ID[id];
+}
 function access(item, mineX) {
   const have = item.carriers.filter((id) => mineX.has(id)).sort((a, b) => rank(a) - rank(b));
   const others = item.carriers.filter((id) => !mineX.has(id)).sort((a, b) => rank(a) - rank(b));
@@ -107,12 +117,13 @@ function row(it, now) {
   const ch = it.channels.join(", ");
   let where, btn = "";
   if (it.have.length) {
-    const s = BY_ID[it.have[0]];
+    const s = providerFor(it.have[0]);
     const more = it.have.length - 1;
+    const oom = it.outOfMarket?.includes(it.have[0]) && !it.have.some((id) => !it.outOfMarket.includes(id));
     const via = ch && !new RegExp("^" + s.name.split(" ")[0], "i").test(ch) ? `${esc(ch)} · ${esc(s.name)}` : esc(s.name);
-    where = `${mono(s)}<span>${via}</span>${more > 0 ? `<span class="also">+${more} more of yours</span>` : ""}`;
+    where = `${mono(s)}<span>${via}</span>${oom ? `<span class="also">· if you're outside the teams' area</span>` : ""}${more > 0 ? `<span class="also">+${more} more of yours</span>` : ""}`;
     if (s.url) btn = `<a class="watch" href="${s.url}" target="_blank" rel="noopener">Watch on ${esc(s.name)}</a>`;
-    else btn = `<span class="watch plain">${s.id === "antenna" ? "Free on " + esc(ch) : "Turn to " + esc(ch)}</span>`;
+    else btn = `<span class="watch plain">${s.id === "antenna" ? "Free on " + esc(ch) : "Turn to " + esc(ch || s.name)}</span>`;
   } else if (it.regional) {
     where = `<span class="also">Regional: ${esc(ch)}. Check your local provider or team app.</span>`;
   } else if (it.others.length) {
@@ -139,21 +150,43 @@ function row(it, now) {
   </article>`;
 }
 
+function tile(s, action) {
+  const btn = action === "rm"
+    ? `<button class="tile-x" data-rm="${esc(s.id)}" aria-label="Remove ${esc(s.name)}">×</button>`
+    : "";
+  const tag = action === "add" ? "button" : "div";
+  return `<${tag} class="svc${action === "add" ? " addable" : ""}" ${action === "add" ? `data-add="${esc(s.id)}"` : ""} id="svc-${esc(s.id)}">
+    ${mono(s, true)}<span class="nm">${esc(s.name)}${s.custom ? `<span class="k">Added by you · not matched to listings yet</span>` : ""}</span>
+    ${action === "add" ? `<span class="plus" aria-hidden="true">+</span>` : btn}</${tag}>`;
+}
+
 function renderSetup() {
-  $("#svc-count").textContent = `${mine.size} selected`;
   $("#first-run").hidden = !firstRun;
+  $("#svc-count").textContent = mine.size ? `${mine.size} added` : "";
+  const picked = [...mine].map(svcOf).filter(Boolean);
+  $("#my-svcs").innerHTML = picked.length
+    ? picked.map((s) => tile(s, "rm")).join("")
+    : `<p class="hint">You haven't added any services yet.</p>`;
+  $("#open-cat").hidden = catalogOpen;
+  $("#catalog").hidden = !catalogOpen;
   $("#done").disabled = mine.size === 0;
-  const groups = [["Live TV", ["antenna", "cable", "yttv", "hululive", "fubo", "sling"]],
-                  ["Streaming apps", SERVICES.filter((s) => !["antenna", "cable", "yttv", "hululive", "fubo", "sling"].includes(s.id)).map((s) => s.id)]];
-  $("#svc-grid").innerHTML = groups.map(([label, ids]) => `<h3 class="grp">${label}</h3><div class="grid">${ids.map((id) => {
-    const s = BY_ID[id];
-    return `<button class="svc" id="svc-${s.id}" aria-pressed="${mine.has(s.id)}" data-svc="${s.id}">${mono(s, true)}<span class="nm">${esc(s.name)}<span class="k">${esc(s.kind)}</span></span><span class="chk" aria-hidden="true"></span></button>`;
-  }).join("")}</div>`).join("");
+  if (catalogOpen) renderCatalog();
   const tk = Object.entries(teams);
   $("#team-list").innerHTML = tk.length
-    ? tk.map(([k, n]) => `<button class="team" data-team="${esc(k)}" data-name="${esc(n)}" aria-pressed="true">★ ${esc(n)}</button>`).join("")
+    ? tk.map(([k, n]) => `<button class="team" data-team="${esc(k)}" data-name="${esc(n)}" aria-pressed="true">★ ${esc(n)} ×</button>`).join("")
     : `<p class="hint">No teams yet. Tap ☆ next to a team on any game to follow it.</p>`;
   $("#show-all").checked = showAll;
+}
+
+function renderCatalog() {
+  const q = query.trim().toLowerCase();
+  const avail = SERVICES.filter((s) => !mine.has(s.id) && (!q || s.name.toLowerCase().includes(q)));
+  const html = GROUPS.map((g, i) => {
+    const list = avail.filter((s) => s.g === i);
+    return list.length ? `<h3 class="grp">${g}</h3><div class="grid">${list.map((s) => tile(s, "add")).join("")}</div>` : "";
+  }).join("");
+  $("#cat-list").innerHTML = html || `<p class="hint">No match for "${esc(query)}". Add it by name below.</p>`;
+  $("#custom-name").value ||= "";
 }
 
 // ---------- events ----------
@@ -162,12 +195,26 @@ document.addEventListener("click", (e) => {
   if (tab) { view = tab.dataset.view; render(); window.scrollTo({ top: 0 }); return; }
   const chip = e.target.closest(".chip");
   if (chip) { cat = chip.dataset.cat; render(); return; }
-  const svc = e.target.closest(".svc");
-  if (svc) { const id = svc.dataset.svc; mine.has(id) ? mine.delete(id) : mine.add(id); store.set("mine", [...mine]); render(); return; }
+  const add = e.target.closest("[data-add]");
+  if (add) { mine.add(add.dataset.add); saveMine(); render(); return; }
+  const rm = e.target.closest("[data-rm]");
+  if (rm) { const id = rm.dataset.rm; mine.delete(id); if (custom[id]) { delete custom[id]; store.set("custom", custom); } saveMine(); render(); return; }
+  if (e.target.closest("#open-cat")) { catalogOpen = true; render(); $("#cat-search").focus(); return; }
+  if (e.target.closest("#close-cat")) { catalogOpen = false; query = ""; $("#cat-search").value = ""; render(); return; }
   const team = e.target.closest(".team");
   if (team) { const k = team.dataset.team; if (teams[k]) delete teams[k]; else teams[k] = team.dataset.name; store.set("teams", teams); render(); return; }
-  if (e.target.closest("#done")) { view = "live"; render(); window.scrollTo({ top: 0 }); return; }
+  if (e.target.closest("#done")) { view = "live"; catalogOpen = false; render(); window.scrollTo({ top: 0 }); return; }
   if (e.target.closest("#refresh")) { refresh(); }
+});
+$("#cat-search").addEventListener("input", (e) => { query = e.target.value; renderCatalog(); });
+$("#custom-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = $("#custom-name").value.trim();
+  if (!name) return;
+  const id = "custom-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  custom[id] = name; mine.add(id);
+  store.set("custom", custom); saveMine();
+  $("#custom-name").value = ""; render();
 });
 $("#show-all").addEventListener("change", (e) => { showAll = e.target.checked; store.set("showAll", showAll); render(); });
 
