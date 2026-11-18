@@ -117,13 +117,22 @@ function row(it, now) {
   const ch = it.channels.join(", ");
   let where, btn = "";
   if (it.have.length) {
-    const s = providerFor(it.have[0]);
-    const more = it.have.length - 1;
-    const oom = it.outOfMarket?.includes(it.have[0]) && !it.have.some((id) => !it.outOfMarket.includes(id));
-    const via = ch && !new RegExp("^" + s.name.split(" ")[0], "i").test(ch) ? `${esc(ch)} · ${esc(s.name)}` : esc(s.name);
-    where = `${mono(s)}<span>${via}</span>${oom ? `<span class="also">· if you're outside the teams' area</span>` : ""}${more > 0 ? `<span class="also">+${more} more of yours</span>` : ""}`;
-    if (s.url) btn = `<a class="watch" href="${s.url}" target="_blank" rel="noopener">Watch on ${esc(s.name)}</a>`;
-    else btn = `<span class="watch plain">${s.id === "antenna" ? "Free on " + esc(ch) : "Turn to " + esc(ch || s.name)}</span>`;
+    // One button for each of the user's own services that carries it
+    const seen = new Set(), opts = [];
+    for (const id of it.have) {
+      const s = providerFor(id);
+      if (!s || seen.has(s.id)) continue;
+      seen.add(s.id); opts.push({ s, oom: it.outOfMarket?.includes(id) });
+    }
+    where = ch ? `<span>On ${esc(ch)}</span>` : "";
+    if (opts.every((o) => o.oom)) where += `<span class="also">· if you're outside the teams' area</span>`;
+    btn = `<div class="opts">${opts.map(({ s }, i) => {
+      const cls = i === 0 ? "watch" : "watch alt";
+      const label = s.url ? esc(s.name) : s.id === "antenna" ? `Antenna: ${esc(ch)}` : `${esc(s.name)}: ${esc(ch || "")}`;
+      return s.url
+        ? `<a class="${cls}" href="${s.url}" target="_blank" rel="noopener">${mono(s)}${i === 0 ? "Watch on " : ""}${label}</a>`
+        : `<span class="${cls} plain">${mono(s)}${label}</span>`;
+    }).join("")}</div>`;
   } else if (it.regional) {
     where = `<span class="also">Regional: ${esc(ch)}. Check your local provider or team app.</span>`;
   } else if (it.others.length) {
@@ -140,7 +149,7 @@ function row(it, now) {
   return `<article class="row${it.have.length ? "" : " locked"}">
     <div class="when">${when}</div>
     <div class="main">
-      <div class="cat">${esc(it.cat)}${it.sub ? " · " + esc(it.sub) : ""}</div>
+      <div class="cat">${esc(it.cat)}${it.sub && it.sub !== it.cat ? " · " + esc(it.sub) : ""}</div>
       <h3 class="title">${it.link ? `<a href="${esc(it.link)}" target="_blank" rel="noopener">${esc(it.title)}</a>` : esc(it.title)}</h3>
       ${it.score ? `<div class="score">${esc(it.score)}</div>` : ""}
       ${pct !== null ? `<div class="prog" role="img" aria-label="${Math.round(pct)}% through"><i style="width:${pct}%"></i></div>` : ""}

@@ -115,3 +115,10 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .custom-row{display:flex;gap:8px;align-items:center}
 .custom-row input{flex:1;min-width:0}
 .custom-row button{margin-top:10px;padding:10px 16px;border-radius:8px;border:0;background:var(--fg);color:var(--bg);font-weight:600;cursor:pointer}
+
+/* One button per service the viewer has */
+.opts{display:flex;flex-wrap:wrap;gap:8px;flex-basis:100%}
+.opts .watch{display:inline-flex;align-items:center;gap:7px;padding:6px 12px 6px 6px}
+.opts .watch .mono{width:20px;height:20px;font-size:9px;border-radius:5px}
+.opts .watch.alt{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.opts .watch.plain.alt,.opts .watch.plain{background:var(--surface-2);color:var(--fg);border:0}
