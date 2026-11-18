@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OnNow</title>
+<meta name="description" content="Your live TV guide across every service you pay for.">
+<meta name="theme-color" content="#151c26">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="bar">
+      <div class="brand"><span class="dot"></span>OnNow</div>
+      <div class="bar-r"><span class="clock" id="clock"></span><button id="refresh" class="icon-btn" aria-label="Refresh listings">↻</button></div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-view="live">Live now</button>
+      <button class="tab" role="tab" data-view="next">Up next</button>
+      <button class="tab" role="tab" data-view="setup">My services</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="guide">
+    <div class="chips" id="chips"></div>
+    <div id="content"></div>
+    <p class="status" id="status"></p>
+  </section>
+
+  <section id="setup" class="setup" hidden>
+    <div id="first-run" class="welcome" hidden>
+      <h1>Your TV guide, built from what you pay for</h1>
+      <p>Tap every service you have. OnNow shows what's live across all of them and opens the right app when you tap Watch.</p>
+    </div>
+    <div class="section-h"><h2>My services</h2><span id="svc-count"></span></div>
+    <div id="svc-grid"></div>
+
+    <div class="section-h"><h2>My teams</h2></div>
+    <div class="teams" id="team-list"></div>
+
+    <div class="toggle-row"><label for="show-all">Also show what's on services I don't have</label><input type="checkbox" class="toggle" id="show-all"></div>
+    <button id="done" class="primary">See what's on</button>
+
+    <div class="how">
+      <p><b>Why no passwords?</b> Netflix, Spectrum and the rest don't let other apps sign in for you or play their video. You pick your services here once, and OnNow sends you to the right app.</p>
+      <p><b>Your picks stay on this phone.</b> Nothing is sent anywhere.</p>
+      <p>TV listings from <a href="https://www.tvmaze.com" target="_blank" rel="noopener">TVmaze</a> (CC BY-SA). Game times and networks from ESPN. Which service carries which channel is our best estimate and can vary by area.</p>
+    </div>
+  </section>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
